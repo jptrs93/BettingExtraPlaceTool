@@ -1,0 +1,6 @@
+*.ini
+**/*.ini
+.idea/
+.gradle/
+BettingExtraPlaceTool.iml
+
