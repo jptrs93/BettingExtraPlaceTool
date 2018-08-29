@@ -1,0 +1,22 @@
+cogwheels.start({
+    router: {
+        pushStateEnabled: Modernizr.history
+    },
+    comet: {
+        host: 'https://dpush.ladbrokes.com'
+    },
+    locale: {
+        url: '/{}/json_localization',
+        defaultLocale: 'en-gb',
+        supportedLocales: [
+            'en-gb',
+            'en-ie',
+            'sv-se',
+            'de-de',
+            'en-af'
+        ]
+    },
+    'socket-enabler': {
+        destinationPrefix: '/api'
+    }
+});

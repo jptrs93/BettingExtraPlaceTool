@@ -1,0 +1,56 @@
+
+<!-- saved from url=(0240)https://login.ladbrokes.com/GetLoggedInPlayer.php?casinoname=ladbrokesvegas&realMode=1&clientType=casino&clientPlatform=flash&clientSkin=ladbrokesvegas&redirectUrl=https%3A//sports.ladbrokes.com/%23requestId%3D1234567890&messagesSupported=1 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript">
+function handleResponse()
+{
+  cookieName = 'pas[ladbrokesvegas][real][username]';
+  cookieValue = readCookie(cookieName);
+  cookieExists = cookieValue ? 1 : 0;
+
+      domain = 'https://sports.ladbrokes.com';
+    query = 'redirectResponse=%7B%22errorCode%22%3A0%2C%22cookieExists%22%3A%22%25cookieExists%25%22%2C%22username%22%3A%22%25username%25%22%7D';
+    query = query.replace("%25cookieExists%25", cookieExists);
+    query = query.replace("%25username%25", cookieValue ? cookieValue : "");
+    parent.postMessage(query, domain);
+  }
+
+function readCookie(name)
+{
+  var nameEQ = name + "=";
+  var ca = document.cookie.split(';');
+  for(var i=0;i < ca.length;i++) {
+    var c = ca[i];
+    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+  }
+  return null;
+}
+
+if (window.addEventListener)
+{
+  window.addEventListener('message', onMessageFunc, false);
+}
+else
+{
+  if (window.attachEvent)
+  {
+    window.attachEvent('onmessage', onMessageFunc);
+  }
+}
+
+function onMessageFunc(e)
+{
+  if (e.origin == 'https://sports.ladbrokes.com')
+  {
+    if (e.data == "GetLoggedInPlayer")
+    {
+      handleResponse();
+    }
+  }
+}
+</script>
+</head>
+<body onload="handleResponse();">
+
+</body></html>

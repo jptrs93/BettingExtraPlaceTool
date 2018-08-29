@@ -4,34 +4,54 @@ import App.model.ExtraPlaceEvent;
 import org.openqa.selenium.WebDriver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.firefox.FirefoxDriver;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 abstract class BaseScraper {
 
     protected final Logger logger = LogManager.getLogger(getClass());
-    String bookmaker;
+
+    private String bookmaker;
     WebDriver driver;
     List<ExtraPlaceEvent> events = new ArrayList<>();
 
+    BaseScraper(){
+        bookmaker = "Ladbrokes";
+        System.setProperty("webdriver.gecko.driver", "D:/Google Drive/Repos/BettingExtraPlaceTool/otherDependencies/geckodriver.exe");
+        System.setProperty("webdriver.firefox.logfile","D:/Google Drive/Repos/BettingExtraPlaceTool/otherDependencies/driver.log");
+        driver = new FirefoxDriver();
+        driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
+    }
+
     abstract boolean login();
+
+    abstract HashMap<String, Double[]> getPricesForEvent(String eventURL, int attempts);
 
     /**
      * Gets new prices for an event. The new prices are set in the relevant object in the events list.
      *
      * @param  eventId Id of the event
      **/
-    abstract void getNewPrices(String eventId);
+    public List<ExtraPlaceEvent> getNewPrices(String eventId){
 
-
+        // find event in list based on the Id
+        List<ExtraPlaceEvent> eventsToPrice = ScraperHelper.getEventsById(eventId, events);
+        for(ExtraPlaceEvent event : eventsToPrice){
+            event.prices = getPricesForEvent(event.eventURL,0);
+            event.timeOfLastPriceUpdate = LocalTime.now();
+        }
+        return eventsToPrice;
+    }
     /**
      * Attempts to find the url of a page relating to a specified event
      *
-     * @param  eventId Id of the event
      **/
-    abstract String getEventURL(String eventId);
+    abstract String getEventURL(String name, String time, String market);
 
 
     /**
@@ -40,20 +60,24 @@ abstract class BaseScraper {
      *
      * @param  eventId Id of the event to add
     **/
-    public void addEvent(String eventId){
+    public void addEvent(String eventId, String market){
 
         String[] temp = eventId.split(" ",2);
         ExtraPlaceEvent newEvent = new ExtraPlaceEvent();
-        newEvent.name = temp[1];
         newEvent.bookmaker = bookmaker;
         newEvent.eventId = eventId;
         newEvent.startTime = LocalTime.parse(temp[0]);
-        newEvent.eventURL = getEventURL(eventId);
-        events.add(newEvent);
+        if(newEvent.startTime.isAfter(LocalTime.now())) {
+            newEvent.eventURL = getEventURL(temp[1], temp[0], market);
+            if(newEvent.eventURL != null){ events.add(newEvent);}
+        }
     }
 
-    public void closeDriver(){
-        driver.quit();
+    public List<ExtraPlaceEvent> getEvents() {
+        return events;
     }
 
+    public void removeById(String eventId){
+        events.removeIf(e -> e.eventId.equals(eventId));
+    }
 }

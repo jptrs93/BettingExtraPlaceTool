@@ -1,0 +1,413 @@
+/*
+ var _mapi = {};
+ _mapi.params = {};
+ _mapi.params.realMode = 1;
+ _mapi.params.loginMsgType = 'login';
+ _mapi.params.otherMsgType = 'bonus';
+ _mapi.login = false;
+ */
+
+function callLoginMessages() {
+    if (/login/.test(_mapi.params.loginMsgType)) {
+        getWaitingMessages(_mapi.params.loginMsgType);
+    }
+}
+function callWaitingMessages() {
+    if (typeof(Storage) !== "undefined") {
+        if (sessionStorage.loginMsg && !sessionStorage.hasSeenLoginMsg) {
+            sessionStorage.removeItem('loginMsg');
+            if (/login/.test(_mapi.params.loginMsgType)) {
+                getWaitingMessages(_mapi.params.loginMsgType);
+                sessionStorage.hasSeenLoginMsg = true;
+            }
+
+        } else {
+            if (/bonus|alert/.test(_mapi.params.loginMsgType)) {
+                getWaitingMessages(_mapi.params.loginMsgType);
+            }
+        }
+    } else {
+        if (/bonus|alert/.test(_mapi.params.loginMsgType)) {
+            getWaitingMessages(_mapi.params.loginMsgType);
+        }
+    }
+}
+
+function getWaitingMessages(msgType) {
+
+    var mainContainer = generateMainContainer();
+    var mainContainerContent = generateMainContainerContent();
+    mainContainerContent.appendChild(generateLogo());
+    var wrapperDiv = generateWrapperDiv();
+
+    iapiGetWaitingMessages(msgType, _mapi.params.realMode);
+    iapiSetCallout('GetWaitingMessages', function (response) {
+        //response = _mapi.response;
+        _mapi.response = response;
+        if (response.errorCode) {
+            //alert("Messages failed, error:" + response.errorCode + " errorText:" + response.errorText + " playerMessage:" + response.playerMessage);
+        }
+        else {
+            if (response.actions) {
+                if (response.actions.PlayerActionShowLoginMessage) {
+                    appendStyle();
+                    mainContainerContent = processLogin(response.actions.PlayerActionShowLoginMessage, mainContainerContent, wrapperDiv);
+                    mainContainer.appendChild(mainContainerContent);
+                    document.body.appendChild(mainContainer);
+                    _mapi.messageType = 'login';
+
+                    showPopup();
+                } else if (response.actions.PlayerActionShowDialog) {
+                    appendStyle();
+                    mainContainerContent = processBonus(response.actions.PlayerActionShowDialog, mainContainerContent, wrapperDiv);
+                    mainContainer.appendChild(mainContainerContent);
+                    document.body.appendChild(mainContainer);
+                    _mapi.messageType = 'bonus';
+
+                    showPopup();
+                } else if (response.actions.PlayerActionShowMessage) {
+                    appendStyle();
+                    mainContainerContent = processAlert(response.actions.PlayerActionShowMessage, mainContainerContent, wrapperDiv);
+                    mainContainer.appendChild(mainContainerContent);
+                    document.body.appendChild(mainContainer);
+                    _mapi.messageType = 'alert';
+
+                    showPopup();
+                }
+            }
+        }
+    });
+}
+
+function appendStyle() {
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = '[hidden] { display: none; }';
+    document.head.appendChild(style);
+}
+function getWaitingMessagesOffline(msgType) {
+    var mainContainer = generateMainContainer();
+    var mainContainerContent = generateMainContainerContent();
+    mainContainerContent.appendChild(generateLogo());
+    var wrapperDiv = generateWrapperDiv();
+
+    if (msgType == 'bonus' && _mapi.response.actions && _mapi.response.actions.PlayerActionShowDialog) {
+        mainContainerContent = processBonus(_mapi.response.actions.PlayerActionShowDialog, mainContainerContent, wrapperDiv);
+        mainContainer.appendChild(mainContainerContent);
+        document.body.appendChild(mainContainer);
+        _mapi.messageType = 'bonus';
+
+        showPopup();
+    } else if (msgType == 'alert' && _mapi.response && _mapi.response.actions && _mapi.response.actions.PlayerActionShowMessage) {
+        mainContainerContent = processAlert(_mapi.response.actions.PlayerActionShowMessage, mainContainerContent, wrapperDiv);
+        mainContainer.appendChild(mainContainerContent);
+        document.body.appendChild(mainContainer);
+        _mapi.messageType = 'alert';
+
+        showPopup();
+    }
+}
+
+function navigatelb(element, msgLength) {
+    var cards = document.querySelector('.rowmsglb').parentElement.childNodes;
+    for (var i = 0; i < cards.length; i++) {
+        var el = cards[i];
+        if (!el.getAttribute('hidden')) {
+            if (el.nextSibling) {
+                el.setAttribute('hidden', 'hidden');
+                el.nextSibling.removeAttribute('hidden');
+                if (!el.nextSibling.nextSibling) {
+                    element.setAttribute('hidden', 'hidden');
+                }
+                break;
+            }
+        }
+    }
+}
+
+function bonusConfirm(confirm) {
+    var cards = document.querySelector('.rowmsglb').parentElement.childNodes;
+    var dialougId = null;
+    for (var i = 0; i < cards.length; i++) {
+        var el = cards[i];
+        dialougId = el.getAttribute('data-dialog-id');
+        if (!el.getAttribute('hidden')) {
+            if (el.nextSibling) {
+                el.setAttribute('hidden', 'hidden');
+                el.nextSibling.removeAttribute('hidden');
+                break;
+            }
+        }
+    }
+
+    iapiBonusConfirmation(dialougId, confirm, _mapi.params.realMode);
+    if (i == cards.length) closelb();
+}
+
+function closelb() {
+    var mainContainer = document.getElementById('msgLBMainContainer');
+    if (mainContainer) {
+        var content = document.querySelector('#msgLBMainContainer div');
+        content.setAttribute('style', 'height: 100%;color: #fff;background: #e74c3c;position: relative;border-radius: 3px;margin: 0 auto;-webkit-transform: scale(1); ' +
+            '-moz-transform: scale(1);' +
+            '-ms-transform: scale(1);' +
+            'transform: scale(1);' +
+            'opacity: 0;' +
+            '-webkit-transition: all 1s; ' +
+            '-moz-transition: all 1s;' +
+            'transition: all 1s;');
+        mainContainer.style.visibility = 'hidden';
+        setTimeout(function () {
+            document.getElementById('msgLBOverlay').style.visibility = 'hidden';
+            document.getElementById('msgLBOverlay').style.opacity = 0;
+            document.body.removeChild(msgLBMainContainer);
+            document.body.removeChild(msgLBOverlay);
+            if (_mapi.messageType == 'login') {
+                if (_mapi.params.otherMsgType.match('/bonus/g')) {
+                    getWaitingMessagesOffline('bonus');
+                }
+            }
+            else if (_mapi.messageType == 'bonus') {
+                if (_mapi.params.otherMsgType.match('/alert/g')) {
+                    getWaitingMessagesOffline('alert');
+                }
+            }
+        }, 25);
+    }
+}
+
+function generateOkButton() {
+    var aButton = document.createElement('a');
+    aButton.setAttribute('onclick', 'javascript:closelb()');
+
+    var okButton = document.createElement('div');
+    okButton.setAttribute('style', "cursor: pointer; position: absolute; right:15px; top: 15px; font-family: 'Helvetica Neue', Helvetica, Arial ; color: #fff; font-weight: bold; text-decoration: none; padding:3px; font-size: 16px;display: inline-block;transform : scale(1.4,1);-webkit-transform:scale(1.4,1); -moz-transform:scale(1.4,1); -ms-transform:scale(1.4,1); -o-transform:scale(1.4,1);");
+    okButton.innerHTML = 'X';
+    aButton.appendChild(okButton);
+
+    return aButton;
+}
+
+
+function generateNextButton(length) {
+    var nextButtonDiv = document.createElement('div');
+    nextButtonDiv.setAttribute('style', 'text-align:right;margin-right:10px;');
+
+    var nextButton = document.createElement('input');
+    nextButton.setAttribute('class', 'msglbbutton');
+    nextButton.setAttribute('value', 'Next');
+    nextButton.setAttribute('onClick', 'javascript:navigatelb(this, ' + length + ')');
+    nextButton.setAttribute('type', 'button');
+    nextButton.setAttribute('style', "font-family:'robotoboldcondensed', arial !important;height:32px;border:0px;min-width: 117px;padding:0px;background-color: #759d26;background-image: -webkit-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: -moz-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: -o-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: linear-gradient(to top, #759d26 16%, #9cb558 56%);text-transform: uppercase;color: #fff; font-size: 22px; cursor: pointer;text-shadow: 0 -1px rgba(0,0,0,.37);");
+
+    nextButtonDiv.appendChild(nextButton);
+
+    return nextButtonDiv;
+}
+
+function generateBonusButtons(dialogId, mainContainerContent) {
+    var buttonWrap = document.createElement('div');
+    buttonWrap.setAttribute('style', 'text-align:center;max-width:600px;')
+
+    var acceptButton = document.createElement('input');
+    acceptButton.setAttribute('value', 'Accept');
+    acceptButton.setAttribute('class', 'msglbbutton');
+    acceptButton.setAttribute('style', "font-family:'robotoboldcondensed', arial !important;height:32px;border:0px;min-width: 117px;padding:0px;background-color: #759d26;background-image: -webkit-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: -moz-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: -o-linear-gradient(bottom, #759d26 16%, #9cb558 56%);background-image: linear-gradient(to top, #759d26 16%, #9cb558 56%);text-transform: uppercase;color: #fff; font-size: 22px; cursor: pointer;text-shadow: 0 -1px rgba(0,0,0,.37);margin-right:10%;");
+    acceptButton.setAttribute('onClick', 'javascript:bonusConfirm(1)');
+    acceptButton.setAttribute('type', 'button');
+
+    buttonWrap.appendChild(acceptButton);
+
+    var declineButton = document.createElement('input');
+    declineButton.setAttribute('value', 'Decline');
+    declineButton.setAttribute('class', 'msglbbutton');
+    declineButton.setAttribute('style', "font-family:'robotoboldcondensed', arial !important;height:32px;margin:0 5px; border:0px;min-width: 117px;background-color: #d30402;padding:0px;background-image: -webkit-gradient(linear,left top,	left bottom,color-stop(0.16, #d30402),color-stop(0.56, #c20400));background-image: -o-linear-gradient(bottom, #d30402 16%, #c20400 56%);background-image: -moz-linear-gradient(bottom, #d30402 16%, #c20400 56%);background-image: -webkit-linear-gradient(bottom, #d30402 16%, #c20400 56%);background-image: -ms-linear-gradient(bottom, #d30402 16%, #c20400 56%);background-image: linear-gradient(to bottom, #d30402 16%, #c20400 56%);border-top-color: #960000;border-bottom-color: #e20200;text-transform: uppercase;color: #fff; font-size: 22px; font-family: 'robotoboldcondensed', arial !important; cursor: pointer;text-shadow: 0 -2px rgba(0,0,0,.25);");
+    declineButton.setAttribute('onClick', 'javascript:bonusConfirm(0)');
+    declineButton.setAttribute('type', 'button');
+
+    buttonWrap.appendChild(declineButton);
+
+    mainContainerContent.appendChild(buttonWrap);
+
+    return mainContainerContent;
+
+}
+
+function generateLogo() {
+    var titleDiv = document.createElement('div');
+    titleDiv.setAttribute('style', 'background: #c70304; color: #fff; padding: 12px 10px 10px 10px; position: relative;');
+
+    var logo = document.createElement('img');
+    logo.setAttribute('src', '//media.ladbrokes.com/generic/ladbrokes-logo.png');
+    logo.setAttribute('border', '0');
+    logo.setAttribute('width', "110");
+    logo.setAttribute('height', "25");
+    logo.setAttribute('alt', 'Ladbrokes');
+	logo.setAttribute('style', 'width:auto !important');
+
+    titleDiv.appendChild(logo);
+
+    return titleDiv;
+}
+function generateTitle(message) {
+    var titleLarge = document.createElement('div');
+    titleLarge.setAttribute('id', 'lbmsgtitle');
+    titleLarge.setAttribute('style', 'position: relative; padding: 10px 25px 10px 10px; border-bottom: 1px solid #dbdbdb; color:#363636; background:#e8e8e8;font-size: 21px;font-weight: normal;');
+    titleLarge.innerHTML = message;
+
+    return titleLarge;
+}
+
+function generateMainContainer() {
+    var mainContainer = document.createElement('DIV');
+    mainContainer.setAttribute('id', 'msgLBMainContainer');
+    mainContainer.setAttribute('class', 'md-modal');
+    mainContainer.setAttribute('style', '' +
+        'position: fixed;' +
+        'top: 50%;' +
+        'left: 50%;' +
+        'width: 96%;' +
+        'max-width: 630px;' +
+        'z-index: 2000;' +
+        '-webkit-backface-visibility: hidden;' +
+        '-moz-backface-visibility: hidden;' +
+        'backface-visibility: hidden;' +
+        '-webkit-transform: translateX(-50%) translateY(-50%);' +
+        '-moz-transform: translateX(-50%) translateY(-50%);' +
+        '-ms-transform: translateX(-50%) translateY(-50%);' +
+        'transform: translateX(-50%) translateY(-50%);' +
+        'visibility: visible;' +
+        "font-family: 'robotoboldcondensed', arial !important;"
+    );
+
+    return mainContainer;
+}
+
+function generateMainContainerContent() {
+    var mainContainerContent = document.createElement('DIV');
+    mainContainerContent.setAttribute('class', 'md-content');
+    mainContainerContent.setAttribute('style', 'background: #e8e8e8; color: #363636;position: relative;margin: 0 auto;-webkit-transform: scale(0.7);-moz-transform: scale(0.7);-ms-transform: scale(0.7);transform: scale(0.7);opacity: 0;-webkit-transition: all 0.8s;-moz-transition: all 0.8s;transition: all 0.8s;height: 100%;padding-bottom:10px;');
+
+    return mainContainerContent;
+}
+
+function generateWrapperDiv() {
+    var wrapperDiv = document.createElement('div');
+    wrapperDiv.setAttribute('style', 'padding:10px; margin:0;font-weight:300;font-size:16px;font-family:arial;');
+
+    return wrapperDiv;
+}
+
+function generateOverlay() {
+    var overlay = document.createElement('div');
+    overlay.setAttribute('id', 'msgLBOverlay');
+    overlay.setAttribute('style', 'position: fixed;width: 100%;height: 100%;visibility: visible;top: 0;left: 0;z-index: 1000;opacity: 1;background: #000;-webkit-transition: all 0.3s;-moz-transition: all 0.3s;transition: all 0.3s;opacity:0.6');
+
+    return overlay;
+}
+
+function generateCard(html, index, hidden, data) {
+    var card = document.createElement('DIV');
+    if (hidden)
+        card.setAttribute('hidden', 'hidden');
+    if (data) {
+        card.setAttribute('data-dialog-id', data);
+    }
+    card.setAttribute('style', 'font-size: 1em;width: 100%;');
+
+    card.setAttribute('id', 'rowmsglb_' + index);
+    card.setAttribute('class', 'rowmsglb');
+
+    card.innerHTML = html;
+
+    var img = card.querySelector('img');
+    if (img) {
+        card.querySelector('img').setAttribute('style', 'width:100%;display:block;max-height:50%;');
+    }
+
+    return card;
+}
+
+function showPopup() {
+    showOverlay();
+
+    setTimeout(function () {
+        var content = document.querySelector('#msgLBMainContainer div');
+        content.setAttribute('style', 'height: 100%;background: #e8e8e8; color: #363636;padding-bottom:10px;position: relative;margin: 0 auto;-webkit-transform: scale(1); ' +
+            '-moz-transform: scale(1);' +
+            '-ms-transform: scale(1);' +
+            'transform: scale(1);' +
+            'opacity: 1;' +
+            '-webkit-transition: all 1s; ' +
+            '-moz-transition: all 1s;' +
+            'transition: all 1s;');
+    }, 25);
+}
+
+function showOverlay() {
+    var overlay = generateOverlay();
+    document.body.appendChild(overlay);
+}
+
+function processLogin(responseMessage, mainContainerContent, wrapperDiv) {
+    var responseMessageLength = responseMessage.length;
+
+    for (var i = 0; i < responseMessageLength; i++) {
+        if (i != 0) {
+            wrapperDiv.appendChild(generateCard(responseMessage[i].message, i, true, null));
+        } else {
+            wrapperDiv.appendChild(generateCard(responseMessage[i].message, i, false, null));
+        }
+    }
+
+    mainContainerContent.appendChild(wrapperDiv);
+    if (responseMessageLength > 1) {
+        mainContainerContent.appendChild(generateNextButton(responseMessageLength));
+    }
+    mainContainerContent.appendChild(generateOkButton());
+
+    return mainContainerContent;
+}
+
+function processBonus(responseMessage, mainContainerContent, wrapperDiv) {
+    for (var i = 0; i < responseMessage.length; i++) {
+        if (responseMessage[i].parameters && responseMessage[i].parameters.KeyValue) {
+            var dialogId = responseMessage[i].dialogId;
+            if (i != 0)
+                wrapperDiv.appendChild(generateCard(responseMessage[i].parameters.KeyValue[0].value, 0, true, dialogId));
+            else
+                wrapperDiv.appendChild(generateCard(responseMessage[i].parameters.KeyValue[0].value, 0, false, dialogId));
+        }
+    }
+
+    mainContainerContent.appendChild(wrapperDiv);
+    mainContainerContent = generateBonusButtons(dialogId, mainContainerContent);
+
+    return mainContainerContent;
+
+}
+
+function processAlert(responseMessage, mainContainerContent, wrapperDiv) {
+    if (responseMessage.message) {
+        wrapperDiv.appendChild(generateCard(responseMessage.message, 0, false, null));
+        mainContainerContent.appendChild(wrapperDiv);
+    } else if (responseMessage[0] && responseMessage[0].message) {
+        var responseMessageLength = responseMessage.length;
+        for (var i = 0; i < responseMessageLength; i++) {
+            if (i != 0) {
+                wrapperDiv.appendChild(generateCard(responseMessage[i].message, i, true, null));
+            } else {
+                wrapperDiv.appendChild(generateCard(responseMessage[i].message, i, false, null));
+            }
+        }
+
+        mainContainerContent.appendChild(wrapperDiv);
+        if (responseMessageLength > 1) {
+            mainContainerContent.appendChild(generateNextButton(responseMessageLength));
+        }
+    }
+
+    mainContainerContent.appendChild(generateOkButton());
+
+    return mainContainerContent;
+}
