@@ -42,7 +42,7 @@ public class LadbrokesScraper extends BaseScraper {
                 // get all of the text
                 String[] promoText = driver.findElement(By.cssSelector(".promotion-content,.promotion")).getText().split("\\r?\\n");
                 for(String line : promoText){
-                    if (line.matches("\\s*\\d\\d:\\d\\d.*")) {
+                    if (line.matches(".*\\s*\\d?\\d:\\d\\d.*")) {
                         System.out.println("Found Event: "+ line.trim());
                         extraPlaceEventIds.add(line.trim());
                     }

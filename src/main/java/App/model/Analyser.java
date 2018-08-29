@@ -1,5 +1,6 @@
 package App.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Analyser {
@@ -14,11 +15,11 @@ public class Analyser {
 
 
         // check if there is sufficient data to make analysis
-
+        List<String> runners = new ArrayList<>();
         // check that the names match across the events
         double eachWayFactor = 2/5;
         int no_places = 3;
-        int no_runners = runners.size;
+        int no_runners = runners.size();
         for(String runner : runners){
 
             Double[] prices = new Double[3];

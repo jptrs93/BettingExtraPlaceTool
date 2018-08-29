@@ -3,13 +3,11 @@ package App.scraper;
 import App.model.BetInstruction;
 import App.model.ExtraPlaceEvent;
 import App.model.TimeManager;
-import com.sun.org.apache.bcel.internal.generic.LoadClass;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ScraperManager {
 
@@ -52,7 +50,7 @@ public class ScraperManager {
 
     private void addToEventsList(String eventId){
         String[] temp = eventId.split(" ",2);
-        events.put(eventId,LocalTime.parse(temp[0]));
+        events.put(eventId,BaseScraper.convertToTimeObject(temp[0]));
     }
 
     public void clean(){
@@ -76,4 +74,5 @@ public class ScraperManager {
     public List<LocalTime> getListOfStartTimes(){
         return new ArrayList<>(events.values());
     }
+
 }

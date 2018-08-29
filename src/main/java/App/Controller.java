@@ -75,6 +75,9 @@ public class Controller {
             for(String eventId : scraperManager.getEventsToAnalyse()){
                 System.out.println("Fetching data for event: "+eventId);
                 List<ExtraPlaceEvent> eventData = scraperManager.getPriceData(eventId);
+                for (ExtraPlaceEvent event : eventData){
+                    event.printData();
+                }
                 System.out.println("Analysing data for event: "+eventId);
                 BetInstruction betInstruction = analyser.analyse(eventData);
                 if(betInstruction != null) {

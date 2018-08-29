@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.firefox.FirefoxDriver;
 
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +67,7 @@ abstract class BaseScraper {
         ExtraPlaceEvent newEvent = new ExtraPlaceEvent();
         newEvent.bookmaker = bookmaker;
         newEvent.eventId = eventId;
-        newEvent.startTime = LocalTime.parse(temp[0]);
+        newEvent.startTime = convertToTimeObject(temp[0]);
         if(newEvent.startTime.isAfter(LocalTime.now())) {
             newEvent.eventURL = getEventURL(temp[1], temp[0], market);
             if(newEvent.eventURL != null){ events.add(newEvent);}
@@ -79,5 +80,15 @@ abstract class BaseScraper {
 
     public void removeById(String eventId){
         events.removeIf(e -> e.eventId.equals(eventId));
+    }
+
+    public static LocalTime convertToTimeObject(String stringForm){
+        try{
+            return LocalTime.parse(stringForm);
+        } catch (DateTimeParseException e){
+            String[] temp = stringForm.split(":",2);
+            Integer hours = Integer.valueOf(temp[0]) + 12;
+            return LocalTime.parse(hours.toString()+":"+temp[1]);
+        }
     }
 }

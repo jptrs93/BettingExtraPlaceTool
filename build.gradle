@@ -20,14 +20,10 @@ dependencies {
 
 
 
-task copySomeFiles(dependsOn: clean){
-
-    slsalkdj
-    asdkjlsa
-
-    asflaskj
-
-}
+//task copySomeFiles(dependsOn: clean){
+//
+//
+//}
 
 
 
